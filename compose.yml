@@ -53,7 +53,7 @@ services:
               echo \"Scanning: $$name (no git)\"
             fi
             
-            bash /scanner/shai-hulud-detector.sh $$SCAN_FLAG \"$$project\" 2>&1 | sed 's/\x1b\[[0-9;]*m//g' > \"/reports/$${name}_report.txt\"
+            bash /scanner/shai-hulud-detector.sh $$SCAN_FLAG \"$$project\" 2>&1 > \"/reports/$${name}_report.txt\"
             
             if grep -q 'No indicators of Shai-Hulud compromise detected' \"/reports/$${name}_report.txt\"; then
               echo \"✅ $$name - CLEAN\"
