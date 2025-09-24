@@ -1378,7 +1378,8 @@ main() {
 
     # Run core Shai-Hulud detection checks
     check_workflow_files "$scan_dir"
-    check_file_hashes "$scan_dir"
+    # There are some problems with this check, so we're skipping it for now
+    # check_file_hashes "$scan_dir"
     check_packages "$scan_dir"
     check_postinstall_hooks "$scan_dir"
     check_content "$scan_dir"

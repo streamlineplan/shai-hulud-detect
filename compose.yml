@@ -1,0 +1,69 @@
+# Shai-Hulud NPM Supply Chain Attack Detector - Docker Compose
+#
+# SETUP: Add your project paths in the volumes section below
+#
+# USAGE:
+# Normal scan:    docker compose up
+# Paranoid scan:  PARANOID=true docker compose up
+#
+# RESULTS:
+# Reports will be saved in ./reports/ directory
+# Clean projects show: "✅ project-name - CLEAN"
+# Issues found show:   "🔴 project-name - ISSUES FOUND"
+
+services:
+  shai-hulud-scanner:
+    image: bash:5.3.3-alpine3.22
+    container_name: shai-hulud-scanner
+    working_dir: /scanner
+    environment:
+      - PARANOID=${PARANOID:-false}
+    volumes:
+      - ./shai-hulud-detector.sh:/scanner/shai-hulud-detector.sh
+      - ./compromised-packages.txt:/scanner/compromised-packages.txt:ro
+
+      - ./reports:/reports
+      
+      # Add your project paths here:
+      # - /path/to/your/project1:/projects/project1:ro
+      # - /path/to/your/project2:/projects/project2:ro
+    
+    command: |
+      sh -c "
+        apk add --no-cache git
+        mkdir -p /reports
+        
+        if [ \"$$PARANOID\" = \"true\" ]; then
+          echo \"🔍🔍 Running PARANOID scan\"
+          SCAN_FLAG=\"--paranoid\"
+        else
+          echo \"🔍 Running NORMAL scan\"
+          SCAN_FLAG=\"\"
+        fi
+        
+        for project in /projects/*; do
+          if [ -d \"$$project\" ]; then
+            name=$$(basename \"$$project\")
+            
+            # Get current git branch
+            if [ -d \"$$project/.git\" ]; then
+              branch=$$(cd \"$$project\" && git branch --show-current 2>/dev/null || echo \"unknown\")
+              echo \"Scanning: $$name (branch: $$branch)\"
+            else
+              echo \"Scanning: $$name (no git)\"
+            fi
+            
+            bash /scanner/shai-hulud-detector.sh $$SCAN_FLAG \"$$project\" 2>&1 > \"/reports/$${name}_report.txt\"
+            
+            if grep -q 'No indicators of Shai-Hulud compromise detected' \"/reports/$${name}_report.txt\"; then
+              echo \"✅ $$name - CLEAN\"
+            else
+              echo \"🔴 $$name - ISSUES FOUND\"
+            fi
+          fi
+        done
+        
+        echo \"Reports saved to ./reports/\"
+      "
+    
+    restart: "no"
